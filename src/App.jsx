@@ -21,6 +21,7 @@ import SettingsPage from './pages/SettingsPage';
 import DriversMapPage from './pages/DriversMapPage';
 import DemandHeatmapPage from './pages/DemandHeatmapPage';
 import SosPage from './pages/SosPage';
+import LotteryPage from './pages/LotteryPage';
 
 const HIERARCHY = { SUPER: 3, MANAGER: 2, CARE: 1 };
 
@@ -146,6 +147,7 @@ function AppRoutes() {
       <Route path="/heatmap" element={<PrivateRoute><Layout><DemandHeatmapPage /></Layout></PrivateRoute>} />
       <Route path="/sos" element={<PrivateRoute><Layout><SosPage /></Layout></PrivateRoute>} />
       <Route path="/settings" element={<PrivateRoute><Layout><SettingsPage /></Layout></PrivateRoute>} />
+      <Route path="/lottery" element={<PrivateRoute><Layout><LotteryPage /></Layout></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { NavLink } from 'react-router-dom';
 import client from '../api/client';
 
 export default function DashboardPage() {
@@ -10,22 +11,28 @@ export default function DashboardPage() {
     (async () => {
       try {
         const [usersRes, driversRes, ridesRes, ordersRes, providersRes, onlineRes] = await Promise.all([
-          client.get('/admin/users?limit=1').catch(() => ({ data: { total: 0 } })),
-          client.get('/admin/drivers?limit=1').catch(() => ({ data: { total: 0 } })),
-          client.get('/admin/rides?limit=1').catch(() => ({ data: { total: 0 } })),
-          client.get('/admin/orders?limit=1').catch(() => ({ data: { total: 0 } })),
-          client.get('/admin/providers').catch(() => ({ data: { providers: [] } })),
-          client.get('/admin/online-drivers').catch(() => ({ data: { drivers: [] } })),
+          client.get('/admin/users?limit=1').catch(() => ({ data: { data: { total: 0 } } })),
+          client.get('/admin/drivers?limit=1').catch(() => ({ data: { data: { total: 0 } } })),
+          client.get('/admin/rides?limit=1').catch(() => ({ data: { data: { total: 0 } } })),
+          client.get('/admin/orders?limit=1').catch(() => ({ data: { data: { total: 0 } } })),
+          client.get('/admin/providers').catch(() => ({ data: { data: { providers: [] } } })),
+          client.get('/admin/online-drivers').catch(() => ({ data: { data: { drivers: [] } } })),
         ]);
+        const ud = usersRes.data?.data || usersRes.data || {};
+        const dd = driversRes.data?.data || driversRes.data || {};
+        const rd = ridesRes.data?.data || ridesRes.data || {};
+        const od = ordersRes.data?.data || ordersRes.data || {};
+        const pd = providersRes.data?.data || providersRes.data || {};
+        const nd = onlineRes.data?.data || onlineRes.data || {};
         setStats({
-          users: usersRes.data.total || 0,
-          drivers: driversRes.data.total || 0,
-          rides: ridesRes.data.total || 0,
-          orders: ordersRes.data.total || 0,
-          providers: (providersRes.data.providers || []).length,
-          activeDrivers: (onlineRes.data.drivers || []).length,
+          users: ud.total || 0,
+          drivers: dd.total || 0,
+          rides: rd.total || 0,
+          orders: od.total || 0,
+          providers: (pd.providers || []).length,
+          activeDrivers: (nd.drivers || []).length,
         });
-        setOnlineDrivers(onlineRes.data.drivers || []);
+        setOnlineDrivers(nd.drivers || []);
       } catch (e) {
         console.error('Dashboard stats error:', e);
       } finally {
@@ -91,12 +98,13 @@ export default function DashboardPage() {
           <div style={{ ...styles.section, marginTop: 16 }}>
             <h2 style={styles.sectionTitle}>Quick Links</h2>
             <div style={styles.linkGrid}>
-              <a href="/users" style={styles.link}>👥 Users & Drivers</a>
-              <a href="/providers" style={styles.link}>🚗 Providers</a>
-              <a href="/rides" style={styles.link}>🛣️ Rides</a>
-              <a href="/orders" style={styles.link}>📦 Orders</a>
-              <a href="/restaurants" style={styles.link}>🍔 Restaurants</a>
-              <a href="/reports" style={styles.link}>📈 Reports</a>
+              <NavLink to="/users" style={styles.link}>👥 Users & Drivers</NavLink>
+              <NavLink to="/providers" style={styles.link}>🚗 Providers</NavLink>
+              <NavLink to="/rides" style={styles.link}>🛣️ Rides</NavLink>
+              <NavLink to="/orders" style={styles.link}>📦 Orders</NavLink>
+              <NavLink to="/restaurants" style={styles.link}>🍔 Restaurants</NavLink>
+              <NavLink to="/reports" style={styles.link}>📈 Reports</NavLink>
+              <NavLink to="/lottery" style={styles.link}>🎰 Lottery</NavLink>
             </div>
           </div>
         </>

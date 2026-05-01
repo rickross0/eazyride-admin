@@ -3,13 +3,20 @@ import client from '../api/client';
 
 const AuthContext = createContext(null);
 
-// Map backend roles to frontend admin levels: SUPER, MANAGER, CARE
-function mapAdminLevel(role, adminRole) {
-  const level = adminRole || role;
-  if (level === 'SUPER_ADMIN') return 'SUPER';
-  if (level === 'ADMIN') return 'MANAGER';
-  if (level === 'MANAGER') return 'MANAGER';
-  if (level === 'CARE') return 'CARE';
+// Map backend adminRole (from adminProfile) to frontend admin level
+// Backend AdminRole enum: SUPER_ADMIN, MANAGER, CARE
+// Frontend levels: SUPER, MANAGER, CARE
+function mapAdminLevel(user) {
+  // Priority: adminProfile.adminRole > flat adminLevel > role fallback
+  const adminRole = user?.adminProfile?.adminRole || user?.adminLevel;
+  if (adminRole === 'SUPER_ADMIN') return 'SUPER';
+  if (adminRole === 'MANAGER') return 'MANAGER';
+  if (adminRole === 'CARE') return 'CARE';
+  // Direct frontend levels
+  if (adminRole === 'SUPER' || adminRole === 'MANAGER' || adminRole === 'CARE') return adminRole;
+  // Fallback from UserRole
+  if (user?.role === 'SUPER_ADMIN') return 'SUPER';
+  if (user?.role === 'ADMIN') return 'MANAGER';
   return 'CARE';
 }
 
@@ -24,7 +31,7 @@ export function AuthProvider({ children }) {
     if (savedToken && savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
-        parsed.adminLevel = mapAdminLevel(parsed.role, parsed.adminLevel);
+        parsed.adminLevel = mapAdminLevel(parsed);
         setUser(parsed);
         setToken(savedToken);
       } catch {
@@ -40,20 +47,20 @@ export function AuthProvider({ children }) {
       ? { email: identifier, password }
       : { phone: identifier, password };
 
-    const res = await client.post('/auth/login', payload);
-    const resData = res.data?.data ? res.data : res;
-    const userData = resData.data || resData;
-    const userObj = userData.user;
-    const accessToken = userData.accessToken || userData.token;
+    const response = await client.post('/auth/login', payload);
+    const responseData = response.data?.data || response.data;
+    const loggedInUser = responseData.user;
+    const accessToken = responseData.accessToken || responseData.token;
 
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(userObj?.role)) {
+    if (!loggedInUser || !['SUPER_ADMIN', 'ADMIN'].includes(loggedInUser.role)) {
       throw new Error('Not an admin account');
     }
-    userObj.adminLevel = mapAdminLevel(userObj.role, userObj.adminProfile?.adminRole);
+
+    loggedInUser.adminLevel = mapAdminLevel(loggedInUser);
     localStorage.setItem('adminToken', accessToken);
-    localStorage.setItem('adminUser', JSON.stringify(userObj));
+    localStorage.setItem('adminUser', JSON.stringify(loggedInUser));
     setToken(accessToken);
-    setUser(userObj);
+    setUser(loggedInUser);
   };
 
   const logout = () => {
@@ -64,18 +71,18 @@ export function AuthProvider({ children }) {
   };
 
   const masterLogin = async (userId) => {
-    const { data } = await client.post('/admin/master-login', { userId });
-    const resData = data?.data ? data : data;
-    const userData = resData.data || resData;
-    const userObj = userData.user;
-    const accessToken = userData.accessToken || userData.token;
-    userObj.adminLevel = mapAdminLevel(userObj.role, userObj.adminProfile?.adminRole);
-    userObj.masterLogin = true;
-    userObj.originalAdminId = userData.originalAdminId;
+    const response = await client.post('/admin/master-login', { userId });
+    const responseData = response.data?.data || response.data;
+    const loggedInUser = responseData.user;
+    const accessToken = responseData.accessToken || responseData.token;
+
+    loggedInUser.adminLevel = mapAdminLevel(loggedInUser);
+    loggedInUser.masterLogin = true;
+    loggedInUser.originalAdminId = responseData.originalAdminId;
     localStorage.setItem('adminToken', accessToken);
-    localStorage.setItem('adminUser', JSON.stringify(userObj));
+    localStorage.setItem('adminUser', JSON.stringify(loggedInUser));
     setToken(accessToken);
-    setUser(userObj);
+    setUser(loggedInUser);
   };
 
   return (

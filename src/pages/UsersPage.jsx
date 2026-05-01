@@ -30,17 +30,19 @@ export default function UsersPage() {
 
   const fetchUsers = async (p = 1) => {
     try {
-      const { data } = await client.get(`/admin/users?limit=50&page=${p}`);
-      setUsers(data.users || []);
-      setTotal(data.total || 0);
+      const res = await client.get(`/admin/users?limit=50&page=${p}`);
+      const rd = res.data?.data || res.data || {};
+      setUsers(rd.users || []);
+      setTotal(rd.total || 0);
       setPage(p);
     } catch (e) { console.error('Fetch users error:', e); }
   };
 
   const fetchDrivers = async () => {
     try {
-      const { data } = await client.get('/admin/drivers?limit=50');
-      setDrivers(data.drivers || []);
+      const res = await client.get('/admin/drivers?limit=50');
+      const rd = res.data?.data || res.data || {};
+      setDrivers(rd.drivers || []);
     } catch (e) { console.error('Fetch drivers error:', e); }
   };
 
@@ -61,7 +63,7 @@ export default function UsersPage() {
   };
 
   const approveDriver = async (id) => {
-    try { await client.put(`/admin/drivers/${id}/approve`); setDrivers(prev => prev.map(d => d.id === id ? { ...d, isApproved: true } : d)); } catch (e) { alert('Failed to approve'); }
+    try { await client.put(`/admin/drivers/${id}/approve`); setDrivers(prev => prev.map(d => d.id === id ? { ...d, status: 'APPROVED' } : d)); } catch (e) { alert('Failed to approve'); }
   };
 
   // ── Password Reset ──
@@ -71,7 +73,7 @@ export default function UsersPage() {
     if (!newPassword || newPassword.length < 6) { alert('Password must be at least 6 characters'); return; }
     setResetLoading(true);
     try {
-      await client.put(`/admin/users/${resetUserId}/reset-password`, { newPassword });
+      await client.put(`/admin/users/${resetUserId}/reset-password`, { password: newPassword });
       alert('Password updated!');
       setResetUserId(null); setNewPassword('');
     } catch (e) { alert('Failed: ' + (e.response?.data?.error || e.message)); }
@@ -197,8 +199,8 @@ export default function UsersPage() {
                   <td style={styles.td}>{d.user?.phone}</td>
                   <td style={styles.td}>{d.vehicleType}</td>
                   <td style={styles.td}>{d.plateNumber}</td>
-                  <td style={styles.td}><span style={{ color: d.isApproved ? '#34C759' : '#FF9500' }}>{d.isApproved ? 'Yes' : 'Pending'}</span></td>
-                  <td style={styles.td}>{!d.isApproved && <button style={styles.successBtn} onClick={() => approveDriver(d.id)}>Approve</button>}</td>
+                  <td style={styles.td}><span style={{ color: d.isApproved ? '#34C759' : '#FF9500' }}>{d.status === 'APPROVED' ? 'Yes' : 'Pending'}</span></td>
+                  <td style={styles.td}>{d.status !== 'APPROVED' && <button style={styles.successBtn} onClick={() => approveDriver(d.id)}>Approve</button>}</td>
                 </tr>
               ))}
             </tbody>
