@@ -3,11 +3,13 @@ import client from '../api/client';
 
 const AuthContext = createContext(null);
 
-// Map backend UserRole to frontend admin level hierarchy
-function mapAdminLevel(role, adminLevel) {
-  if (adminLevel) return adminLevel;
-  if (role === 'SUPER_ADMIN') return 'SUPER';
-  if (role === 'ADMIN') return 'MANAGER';
+// Map backend roles to frontend admin levels: SUPER, MANAGER, CARE
+function mapAdminLevel(role, adminRole) {
+  const level = adminRole || role;
+  if (level === 'SUPER_ADMIN') return 'SUPER';
+  if (level === 'ADMIN') return 'MANAGER';
+  if (level === 'MANAGER') return 'MANAGER';
+  if (level === 'CARE') return 'CARE';
   return 'CARE';
 }
 
@@ -47,7 +49,7 @@ export function AuthProvider({ children }) {
     if (!['SUPER_ADMIN', 'ADMIN'].includes(userObj?.role)) {
       throw new Error('Not an admin account');
     }
-    userObj.adminLevel = mapAdminLevel(userObj.role, userObj.adminLevel || userObj.adminProfile?.adminRole);
+    userObj.adminLevel = mapAdminLevel(userObj.role, userObj.adminProfile?.adminRole);
     localStorage.setItem('adminToken', accessToken);
     localStorage.setItem('adminUser', JSON.stringify(userObj));
     setToken(accessToken);
@@ -67,7 +69,7 @@ export function AuthProvider({ children }) {
     const userData = resData.data || resData;
     const userObj = userData.user;
     const accessToken = userData.accessToken || userData.token;
-    userObj.adminLevel = mapAdminLevel(userObj.role, userObj.adminLevel || userObj.adminProfile?.adminRole);
+    userObj.adminLevel = mapAdminLevel(userObj.role, userObj.adminProfile?.adminRole);
     userObj.masterLogin = true;
     userObj.originalAdminId = userData.originalAdminId;
     localStorage.setItem('adminToken', accessToken);
