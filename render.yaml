@@ -2,8 +2,5 @@ services:
   - type: web
     name: eazyride-haye-admin
     runtime: static
-    buildCommand: npm install && npm run build
+    buildCommand: VITE_API_URL=https://eazyride-haye-db.onrender.com/api/v1 npm install && npm run build
     staticPublishPath: ./dist
-    envVars:
-      - key: VITE_API_URL
-        value: https://eazyride-haye-db.onrender.com
