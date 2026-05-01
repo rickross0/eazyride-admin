@@ -84,7 +84,7 @@ export default function LoginPage() {
           </button>
         </form>
         <div style={styles.footer}>
-          <span style={styles.footerText}>EazyRide Admin Panel v2.0</span>
+          <span style={styles.footerText}>EazyRide Admin Panel v3.0</span>
         </div>
       </div>
     </div>
