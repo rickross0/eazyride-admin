@@ -21,11 +21,6 @@ import SettingsPage from './pages/SettingsPage';
 import DriversMapPage from './pages/DriversMapPage';
 import DemandHeatmapPage from './pages/DemandHeatmapPage';
 import SosPage from './pages/SosPage';
-import ServiceCategoriesPage from './pages/ServiceCategoriesPage';
-import ServiceListingsPage from './pages/ServiceListingsPage';
-import ServiceRequestsPage from './pages/ServiceRequestsPage';
-import ServiceProvidersPage from './pages/ServiceProvidersPage';
-import ServiceStatsPage from './pages/ServiceStatsPage';
 
 const HIERARCHY = { SUPER: 3, MANAGER: 2, CARE: 1 };
 
@@ -43,10 +38,6 @@ const leftNavItems = [
   { to: '/drivers-map', label: 'Drivers Map', icon: '🗺️', minLevel: 'CARE' },
   { to: '/sos', label: 'SOS Alerts', icon: '🆘', minLevel: 'CARE' },
   { to: '/heatmap', label: 'Heatmap', icon: '🔥', minLevel: 'MANAGER' },
-  { to: '/service-categories', label: 'Service Categories', icon: '🔧', minLevel: 'MANAGER' },
-  { to: '/service-listings', label: 'Service Listings', icon: '📋', minLevel: 'MANAGER' },
-  { to: '/service-requests', label: 'Service Requests', icon: '📝', minLevel: 'CARE' },
-  { to: '/service-stats', label: 'Service Analytics', icon: '📊', minLevel: 'MANAGER' },
   { to: '/settings', label: 'Settings', icon: '\u2699\uFE0F', minLevel: 'SUPER' },
 ];
 
@@ -56,7 +47,6 @@ const rightNavItems = [
   { to: '/cars', label: 'Cars', icon: '\uD83D\uDE98', minLevel: 'MANAGER' },
   { to: '/orders', label: 'Orders', icon: '\uD83D\uDCE6', minLevel: 'CARE' },
   { to: '/provider-earnings', label: 'Earnings', icon: '\uD83D\uDCB5', minLevel: 'MANAGER' },
-  { to: '/service-providers', label: 'Service Providers', icon: '👨‍💼', minLevel: 'MANAGER' }, icon: '\uD83D\uDCB5', minLevel: 'MANAGER' },
 ];
 
 const levelLabels = {
@@ -156,11 +146,6 @@ function AppRoutes() {
       <Route path="/heatmap" element={<PrivateRoute><Layout><DemandHeatmapPage /></Layout></PrivateRoute>} />
       <Route path="/sos" element={<PrivateRoute><Layout><SosPage /></Layout></PrivateRoute>} />
       <Route path="/settings" element={<PrivateRoute><Layout><SettingsPage /></Layout></PrivateRoute>} />
-      <Route path="/service-categories" element={<PrivateRoute><Layout><ServiceCategoriesPage /></Layout></PrivateRoute>} />
-      <Route path="/service-listings" element={<PrivateRoute><Layout><ServiceListingsPage /></Layout></PrivateRoute>} />
-      <Route path="/service-requests" element={<PrivateRoute><Layout><ServiceRequestsPage /></Layout></PrivateRoute>} />
-      <Route path="/service-providers" element={<PrivateRoute><Layout><ServiceProvidersPage /></Layout></PrivateRoute>} />
-      <Route path="/service-stats" element={<PrivateRoute><Layout><ServiceStatsPage /></Layout></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
