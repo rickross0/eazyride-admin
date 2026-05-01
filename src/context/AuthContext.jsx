@@ -3,12 +3,20 @@ import client from '../api/client';
 
 const AuthContext = createContext(null);
 
-// Map backend UserRole to frontend admin level hierarchy
-// Backend: SUPER_ADMIN, ADMIN  →  Frontend: SUPER, MANAGER, CARE
-function mapAdminLevel(role, adminLevel) {
-  if (adminLevel) return adminLevel; // already SUPER/MANAGER/CARE
-  if (role === 'SUPER_ADMIN') return 'SUPER';
-  if (role === 'ADMIN') return 'MANAGER';
+// Map backend adminRole (from adminProfile) to frontend admin level
+// Backend AdminRole enum: SUPER_ADMIN, MANAGER, CARE
+// Frontend levels: SUPER, MANAGER, CARE
+function mapAdminLevel(user) {
+  // Priority: adminProfile.adminRole > flat adminLevel > role fallback
+  const adminRole = user?.adminProfile?.adminRole || user?.adminLevel;
+  if (adminRole === 'SUPER_ADMIN') return 'SUPER';
+  if (adminRole === 'MANAGER') return 'MANAGER';
+  if (adminRole === 'CARE') return 'CARE';
+  // Direct frontend levels
+  if (adminRole === 'SUPER' || adminRole === 'MANAGER' || adminRole === 'CARE') return adminRole;
+  // Fallback from UserRole
+  if (user?.role === 'SUPER_ADMIN') return 'SUPER';
+  if (user?.role === 'ADMIN') return 'MANAGER';
   return 'CARE';
 }
 
@@ -23,7 +31,7 @@ export function AuthProvider({ children }) {
     if (savedToken && savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
-        parsed.adminLevel = mapAdminLevel(parsed.role, parsed.adminLevel);
+        parsed.adminLevel = mapAdminLevel(parsed);
         setUser(parsed);
         setToken(savedToken);
       } catch {
@@ -39,15 +47,20 @@ export function AuthProvider({ children }) {
       ? { email: identifier, password }
       : { phone: identifier, password };
 
-    const { data } = await client.post('/auth/login', payload);
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(data.user?.role)) {
+    const response = await client.post('/auth/login', payload);
+    const responseData = response.data?.data || response.data;
+    const loggedInUser = responseData.user;
+    const accessToken = responseData.accessToken || responseData.token;
+
+    if (!loggedInUser || !['SUPER_ADMIN', 'ADMIN'].includes(loggedInUser.role)) {
       throw new Error('Not an admin account');
     }
-    data.user.adminLevel = mapAdminLevel(data.user.role, data.user.adminLevel);
-    localStorage.setItem('adminToken', data.token);
-    localStorage.setItem('adminUser', JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
+
+    loggedInUser.adminLevel = mapAdminLevel(loggedInUser);
+    localStorage.setItem('adminToken', accessToken);
+    localStorage.setItem('adminUser', JSON.stringify(loggedInUser));
+    setToken(accessToken);
+    setUser(loggedInUser);
   };
 
   const logout = () => {
@@ -58,14 +71,18 @@ export function AuthProvider({ children }) {
   };
 
   const masterLogin = async (userId) => {
-    const { data } = await client.post('/admin/master-login', { userId });
-    data.user.adminLevel = mapAdminLevel(data.user.role, data.user.adminLevel);
-    data.user.masterLogin = true;
-    data.user.originalAdminId = data.originalAdminId;
-    localStorage.setItem('adminToken', data.token);
-    localStorage.setItem('adminUser', JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
+    const response = await client.post('/admin/master-login', { userId });
+    const responseData = response.data?.data || response.data;
+    const loggedInUser = responseData.user;
+    const accessToken = responseData.accessToken || responseData.token;
+
+    loggedInUser.adminLevel = mapAdminLevel(loggedInUser);
+    loggedInUser.masterLogin = true;
+    loggedInUser.originalAdminId = responseData.originalAdminId;
+    localStorage.setItem('adminToken', accessToken);
+    localStorage.setItem('adminUser', JSON.stringify(loggedInUser));
+    setToken(accessToken);
+    setUser(loggedInUser);
   };
 
   return (
