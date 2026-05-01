@@ -24,11 +24,11 @@ export default function RestaurantsPage() {
   const fetchData = async () => {
     try {
       const [rRes, mRes] = await Promise.all([
-        client.get('/restaurants?limit=100'),
-        client.get('/menu?limit=200'),
+        client.get('/admin/restaurants?limit=100'),
+        client.get('/admin/restaurants?limit=200'),
       ]);
-      setRestaurants(rRes.data.restaurants || []);
-      setMenuItems(mRes.data.items || []);
+      setRestaurants((rRes.data?.data || rRes.data).stores || (rRes.data?.data || rRes.data).restaurants || []);
+      setMenuItems((mRes.data?.data || mRes.data).menuItems || (mRes.data?.data || mRes.data).items || []);
     } catch (e) {
       console.error('Fetch error:', e);
     } finally {
@@ -49,9 +49,9 @@ export default function RestaurantsPage() {
       if (restaurantPhoto) formData.append('photo', restaurantPhoto);
 
       if (editingRestaurant) {
-        await client.put(`/restaurants/${editingRestaurant.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await client.put(`/admin/restaurants/${editingRestaurant.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       } else {
-        await client.post('/restaurants', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await client.post('/admin/restaurants', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       }
       setShowRestaurantForm(false);
       setEditingRestaurant(null);
@@ -73,7 +73,7 @@ export default function RestaurantsPage() {
   const handleDeleteRestaurant = async (id) => {
     if (!window.confirm('Deactivate this restaurant?')) return;
     try {
-      await client.delete(`/restaurants/${id}`);
+      await client.delete(`/admin/restaurants/${id}`);
       fetchData();
     } catch (e) {
       alert('Failed to delete restaurant');
