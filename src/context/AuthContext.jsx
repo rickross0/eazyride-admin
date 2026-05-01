@@ -4,9 +4,8 @@ import client from '../api/client';
 const AuthContext = createContext(null);
 
 // Map backend UserRole to frontend admin level hierarchy
-// Backend: SUPER_ADMIN, ADMIN  →  Frontend: SUPER, MANAGER, CARE
 function mapAdminLevel(role, adminLevel) {
-  if (adminLevel) return adminLevel; // already SUPER/MANAGER/CARE
+  if (adminLevel) return adminLevel;
   if (role === 'SUPER_ADMIN') return 'SUPER';
   if (role === 'ADMIN') return 'MANAGER';
   return 'CARE';
@@ -39,15 +38,20 @@ export function AuthProvider({ children }) {
       ? { email: identifier, password }
       : { phone: identifier, password };
 
-    const { data } = await client.post('/auth/login', payload);
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(data.user?.role)) {
+    const res = await client.post('/auth/login', payload);
+    const resData = res.data?.data ? res.data : res;
+    const userData = resData.data || resData;
+    const userObj = userData.user;
+    const accessToken = userData.accessToken || userData.token;
+
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(userObj?.role)) {
       throw new Error('Not an admin account');
     }
-    data.user.adminLevel = mapAdminLevel(data.user.role, data.user.adminLevel);
-    localStorage.setItem('adminToken', data.token);
-    localStorage.setItem('adminUser', JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
+    userObj.adminLevel = mapAdminLevel(userObj.role, userObj.adminLevel || userObj.adminProfile?.adminRole);
+    localStorage.setItem('adminToken', accessToken);
+    localStorage.setItem('adminUser', JSON.stringify(userObj));
+    setToken(accessToken);
+    setUser(userObj);
   };
 
   const logout = () => {
@@ -59,13 +63,17 @@ export function AuthProvider({ children }) {
 
   const masterLogin = async (userId) => {
     const { data } = await client.post('/admin/master-login', { userId });
-    data.user.adminLevel = mapAdminLevel(data.user.role, data.user.adminLevel);
-    data.user.masterLogin = true;
-    data.user.originalAdminId = data.originalAdminId;
-    localStorage.setItem('adminToken', data.token);
-    localStorage.setItem('adminUser', JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
+    const resData = data?.data ? data : data;
+    const userData = resData.data || resData;
+    const userObj = userData.user;
+    const accessToken = userData.accessToken || userData.token;
+    userObj.adminLevel = mapAdminLevel(userObj.role, userObj.adminLevel || userObj.adminProfile?.adminRole);
+    userObj.masterLogin = true;
+    userObj.originalAdminId = userData.originalAdminId;
+    localStorage.setItem('adminToken', accessToken);
+    localStorage.setItem('adminUser', JSON.stringify(userObj));
+    setToken(accessToken);
+    setUser(userObj);
   };
 
   return (
