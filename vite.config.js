@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': { target: 'https://eazyride-haye-db.onrender.com', changeOrigin: true },
+      '/api': { target: 'https://eazyride-haye-backend.onrender.com', changeOrigin: true },
     },
   },
 });
