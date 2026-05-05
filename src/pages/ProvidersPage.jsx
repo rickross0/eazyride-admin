@@ -36,18 +36,20 @@ export default function ProvidersPage() {
   const setCommission = async (id, rate) => {
     try {
       await client.put(`/admin/providers/${id}/commission`, { commissionRate: parseFloat(rate) });
-      setProviders(providers.map((p) => p.id === id ? { ...p, commissionRate: parseFloat(rate) } : p));
+      setProviders((prev) => prev.map((p) => p.id === id ? { ...p, commissionRate: parseFloat(rate) } : p));
     } catch (e) {
-      alert('Failed to set commission');
+      console.error('Set commission error:', e);
+      alert('Failed to set commission: ' + (e.response?.data?.error || e.message || 'Error'));
     }
   };
 
   const updateCategory = async (id, category) => {
     try {
       await client.put(`/admin/providers/${id}/category`, { providerType: category });
-      setProviders(providers.map((p) => p.id === id ? { ...p, category } : p));
+      setProviders((prev) => prev.map((p) => p.id === id ? { ...p, category } : p));
     } catch (e) {
-      alert('Failed to update category: ' + (e.response?.data?.error || 'Error'));
+      console.error('Update category error:', e);
+      alert('Failed to update category: ' + (e.response?.data?.error || e.message || 'Error'));
     }
   };
 
