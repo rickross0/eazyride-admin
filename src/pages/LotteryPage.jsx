@@ -1,99 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import client from '../api/client';
 
-const TABS = ['Settings', 'Tickets', 'Winners', 'Promos'];
+const TABS = ['Giveaways', 'Entries', 'Winners'];
 
 export default function LotteryPage() {
-  const [activeTab, setActiveTab] = useState('Settings');
-  const [config, setConfig] = useState(null);
-  const [configLoading, setConfigLoading] = useState(true);
-  const [tickets, setTickets] = useState([]);
+  const [activeTab, setActiveTab] = useState('Giveaways');
+  const [lotteries, setLotteries] = useState([]);
+  const [entries, setEntries] = useState([]);
   const [winners, setWinners] = useState([]);
-  const [promos, setPromos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [drawLoading, setDrawLoading] = useState(false);
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [ticketPage, setTicketPage] = useState(1);
-  const [ticketTotal, setTicketTotal] = useState(0);
   const [msg, setMsg] = useState('');
-  const [promoForm, setPromoForm] = useState({ code: '', discount: 10, discountType: 'PERCENTAGE', maxUses: 100, expiresAt: '' });
-  const [ticketForm, setTicketForm] = useState({ userId: '', drawDate: '' });
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    prizePool: '',
+    prizeDescription: '',
+    entryLimit: '',
+    startDate: '',
+    endDate: '',
+    drawDate: '',
+  });
 
-  useEffect(() => { fetchConfig(); }, []);
   useEffect(() => {
-    if (activeTab === 'Tickets') fetchTickets();
+    fetchLotteries();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'Entries') fetchEntries();
     if (activeTab === 'Winners') fetchWinners();
-    if (activeTab === 'Promos') fetchPromos();
-  }, [activeTab, ticketPage]);
+  }, [activeTab]);
 
-  const fetchConfig = async () => {
-    try {
-      const { data } = await client.get('/admin/lottery/config');
-      setConfig(data.config || {});
-    } catch (e) {
-      console.error('Fetch config error:', e);
-      setMsg('Failed to load lottery config');
-    } finally {
-      setConfigLoading(false);
-    }
-  };
-
-  const saveConfig = async () => {
-    setSaveLoading(true);
-    try {
-      const { data } = await client.post('/admin/lottery/config', {
-        enabled: config.enabled,
-        commissionPct: config.commissionPct,
-        drawFrequency: config.drawFrequency,
-        nextDrawDate: config.nextDrawDate,
-      });
-      setConfig(data.config);
-      setMsg('Settings saved successfully');
-    } catch (e) {
-      console.error('Save config error:', e);
-      setMsg('Failed to save: ' + (e.response?.data?.error || e.message));
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
-  const runManualDraw = async () => {
-    setDrawLoading(true);
-    try {
-      const { data } = await client.post('/admin/lottery/draw');
-      setMsg(`🎉 Draw complete! Winner: ${data.draw?.ticketNumber || 'N/A'}, Prize: $${data.draw?.prize?.toFixed(2) || 0}`);
-      fetchConfig();
-      fetchWinners();
-    } catch (e) {
-      console.error('Manual draw error:', e);
-      setMsg('Draw failed: ' + (e.response?.data?.error || e.message));
-    } finally {
-      setDrawLoading(false);
-    }
-  };
-
-  const fetchTickets = async () => {
+  const fetchLotteries = async () => {
     setLoading(true);
     try {
-      const { data } = await client.get(`/admin/lottery/tickets?page=${ticketPage}&limit=50`);
-      setTickets(data.tickets || []);
-      setTicketTotal(data.total || 0);
+      const { data } = await client.get('/lottery');
+      setLotteries(data?.data || []);
     } catch (e) {
-      console.error('Fetch tickets error:', e);
+      setMsg('Failed to load giveaways');
     } finally {
       setLoading(false);
     }
   };
 
-  const createTicket = async () => {
-    if (!ticketForm.userId) return setMsg('userId required');
+  const fetchEntries = async () => {
+    setLoading(true);
     try {
-      await client.post('/admin/lottery/tickets', ticketForm);
-      setTicketForm({ userId: '', drawDate: '' });
-      setMsg('Ticket created');
-      fetchTickets();
+      const { data } = await client.get('/lottery/admin/stats');
+      // We'll fetch from a general endpoint or use lotteries with entries
+      const lotts = await client.get('/lottery?limit=100');
+      const allEntries = [];
+      for (const l of (lotts.data?.data || [])) {
+        const detail = await client.get(`/lottery/${l.id}`);
+        allEntries.push(...(detail.data?.data?.entries || []));
+      }
+      setEntries(allEntries);
     } catch (e) {
-      setMsg('Failed to create ticket: ' + (e.response?.data?.error || e.message));
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,61 +66,51 @@ export default function LotteryPage() {
     setLoading(true);
     try {
       const { data } = await client.get('/admin/lottery/winners');
-      setWinners(data.winners || []);
+      setWinners(data?.data || []);
     } catch (e) {
-      console.error('Fetch winners error:', e);
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchPromos = async () => {
-    setLoading(true);
+  const createLottery = async () => {
     try {
-      const { data } = await client.get('/promos');
-      setPromos(data.codes || []);
+      await client.post('/lottery', form);
+      setMsg('Giveaway created successfully');
+      setForm({ title: '', description: '', prizePool: '', prizeDescription: '', entryLimit: '', startDate: '', endDate: '', drawDate: '' });
+      fetchLotteries();
     } catch (e) {
-      console.error('Fetch promos error:', e);
+      setMsg('Failed: ' + (e.response?.data?.error || e.message));
+    }
+  };
+
+  const runDraw = async (id) => {
+    setDrawLoading(true);
+    try {
+      const { data } = await client.post(`/lottery/${id}/draw`);
+      setMsg(`🎉 Draw complete! Winner: ${data?.data?.winner?.firstName || 'N/A'}, Prize: $${data?.data?.prizePool || 0}`);
+      fetchLotteries();
+    } catch (e) {
+      setMsg('Draw failed: ' + (e.response?.data?.error || e.message));
     } finally {
-      setLoading(false);
+      setDrawLoading(false);
     }
   };
 
-  const createPromo = async () => {
+  const deleteLottery = async (id) => {
+    if (!window.confirm('Delete this giveaway?')) return;
     try {
-      await client.post('/promos', promoForm);
-      setPromoForm({ code: '', discount: 10, discountType: 'PERCENTAGE', maxUses: 100, expiresAt: '' });
-      setMsg('Promo created');
-      fetchPromos();
+      await client.delete(`/lottery/${id}`);
+      fetchLotteries();
     } catch (e) {
-      setMsg('Failed to create promo: ' + (e.response?.data?.error || e.message));
+      setMsg('Failed: ' + (e.response?.data?.error || e.message));
     }
   };
-
-  const togglePromo = async (id, current) => {
-    try {
-      await client.put(`/promos/${id}`, { isActive: !current });
-      fetchPromos();
-    } catch (e) {
-      setMsg('Failed to toggle promo: ' + (e.response?.data?.error || e.message));
-    }
-  };
-
-  const deletePromo = async (id) => {
-    if (!window.confirm('Delete this promo code?')) return;
-    try {
-      await client.delete(`/promos/${id}`);
-      fetchPromos();
-    } catch (e) {
-      setMsg('Failed to delete promo: ' + (e.response?.data?.error || e.message));
-    }
-  };
-
-  if (configLoading) return <p style={{ color: '#AAA', padding: 40 }}>Loading...</p>;
 
   return (
     <div>
-      <h1 style={styles.title}>🎰 Lottery & Promos</h1>
+      <h1 style={styles.title}>🎁 Driver Giveaways</h1>
       {msg && <div style={styles.msgBox} onClick={() => setMsg('')}>{msg}</div>}
 
       <div style={styles.tabs}>
@@ -166,61 +121,64 @@ export default function LotteryPage() {
         ))}
       </div>
 
-      {activeTab === 'Settings' && (
-        <div style={styles.panel}>
-          <div style={styles.row}>
-            <label style={styles.label}>Lottery Enabled</label>
-            <input type="checkbox" checked={!!config?.enabled} onChange={(e) => setConfig({ ...config, enabled: e.target.checked })} />
+      {activeTab === 'Giveaways' && (
+        <div>
+          <div style={styles.panel}>
+            <h3 style={styles.subtitle}>Create New Giveaway</h3>
+            <div style={styles.grid}>
+              <input style={styles.input} placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              <input style={styles.input} placeholder="Prize Pool ($)" type="number" value={form.prizePool} onChange={(e) => setForm({ ...form, prizePool: e.target.value })} />
+              <input style={styles.input} placeholder="Entry Limit (optional)" type="number" value={form.entryLimit} onChange={(e) => setForm({ ...form, entryLimit: e.target.value })} />
+              <input style={styles.input} placeholder="Start Date" type="datetime-local" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+              <input style={styles.input} placeholder="End Date" type="datetime-local" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+              <input style={styles.input} placeholder="Draw Date" type="datetime-local" value={form.drawDate} onChange={(e) => setForm({ ...form, drawDate: e.target.value })} />
+            </div>
+            <input style={{ ...styles.input, width: '100%', marginTop: 12 }} placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <input style={{ ...styles.input, width: '100%', marginTop: 12 }} placeholder="Prize Description" value={form.prizeDescription} onChange={(e) => setForm({ ...form, prizeDescription: e.target.value })} />
+            <button style={{ ...styles.saveBtn, marginTop: 16 }} onClick={createLottery}>Create Giveaway</button>
           </div>
-          <div style={styles.row}>
-            <label style={styles.label}>Commission %</label>
-            <input style={styles.input} type="number" step="0.5" value={config?.commissionPct || 0} onChange={(e) => setConfig({ ...config, commissionPct: e.target.value })} />
-          </div>
-          <div style={styles.row}>
-            <label style={styles.label}>Draw Frequency</label>
-            <select style={styles.input} value={config?.drawFrequency || 'weekly'} onChange={(e) => setConfig({ ...config, drawFrequency: e.target.value })}>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="biweekly">Bi-weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </div>
-          <div style={styles.row}>
-            <label style={styles.label}>Next Draw Date</label>
-            <input style={styles.input} type="datetime-local" value={config?.nextDrawDate ? new Date(config.nextDrawDate).toISOString().slice(0, 16) : ''} onChange={(e) => setConfig({ ...config, nextDrawDate: e.target.value })} />
-          </div>
-          <div style={styles.row}>
-            <label style={styles.label}>Current Prize Pool</label>
-            <span style={styles.statValue}>${(config?.prizePool || 0).toFixed(2)}</span>
-          </div>
-          <div style={styles.actions}>
-            <button style={styles.saveBtn} onClick={saveConfig} disabled={saveLoading}>{saveLoading ? 'Saving...' : 'Save Settings'}</button>
-            <button style={styles.drawBtn} onClick={runManualDraw} disabled={drawLoading}>{drawLoading ? 'Drawing...' : '🔥 Manual Draw Now'}</button>
-          </div>
+
+          {loading ? <p style={{ color: '#AAA', padding: 40 }}>Loading...</p> : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+              {lotteries.map((l) => (
+                <div key={l.id} style={styles.giveawayCard}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <Text style={{ color: '#FFF', fontWeight: 700, fontSize: 16 }}>{l.title}</Text>
+                      <Text style={{ color: '#AAA', fontSize: 13 }}>Status: <span style={{ color: l.status === 'ACTIVE' ? '#34C759' : l.status === 'COMPLETED' ? '#FF9500' : '#AAA' }}>{l.status}</span> | Entries: {l.entryCount || 0}{l.entryLimit ? ` / ${l.entryLimit}` : ''}</Text>
+                      <Text style={{ color: '#FFD700', fontSize: 14, fontWeight: 700 }}>Prize: ${(l.prizePool || 0).toFixed(2)}</Text>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {l.status === 'ACTIVE' && (
+                        <button style={styles.drawBtn} disabled={drawLoading} onClick={() => runDraw(l.id)}>{drawLoading ? 'Drawing...' : '🎉 Draw'}</button>
+                      )}
+                      <button style={styles.deleteBtn} onClick={() => deleteLottery(l.id)}>Delete</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {lotteries.length === 0 && <Text style={styles.empty}>No giveaways yet.</Text>}
+            </div>
+          )}
         </div>
       )}
 
-      {activeTab === 'Tickets' && (
+      {activeTab === 'Entries' && (
         <div style={styles.panel}>
-          <h3 style={styles.subtitle}>Create Ticket</h3>
-          <div style={styles.row}>
-            <input style={styles.input} placeholder="User ID" value={ticketForm.userId} onChange={(e) => setTicketForm({ ...ticketForm, userId: e.target.value })} />
-            <input style={styles.input} type="date" value={ticketForm.drawDate} onChange={(e) => setTicketForm({ ...ticketForm, drawDate: e.target.value })} />
-            <button style={styles.saveBtn} onClick={createTicket}>Create</button>
-          </div>
           {loading ? <p style={{ color: '#AAA' }}>Loading...</p> : (
             <div style={styles.tableWrap}>
               <table style={styles.table}>
-                <thead><tr><th style={styles.th}>Ticket</th><th style={styles.th}>User</th><th style={styles.th}>Draw Date</th><th style={styles.th}>Winner</th></tr></thead>
-                <tbody>{tickets.map((t) => (
-                  <tr key={t.id}><td style={styles.td}>{t.ticketNumber}</td><td style={styles.td}>{t.user?.firstName} {t.user?.lastName} ({t.user?.phone})</td><td style={styles.td}>{new Date(t.drawDate).toLocaleDateString()}</td><td style={styles.td}>{t.isWinner ? 'Yes' : 'No'}</td></tr>
+                <thead><tr><th style={styles.th}>Entry #</th><th style={styles.th}>Driver</th><th style={styles.th}>Giveaway</th><th style={styles.th}>Date</th></tr></thead>
+                <tbody>{entries.map((e) => (
+                  <tr key={e.id}>
+                    <td style={styles.td}>#{e.entryNumber}</td>
+                    <td style={styles.td}>{e.user?.firstName} {e.user?.lastName}</td>
+                    <td style={styles.td}>{e.lottery?.title || 'N/A'}</td>
+                    <td style={styles.td}>{new Date(e.enteredAt).toLocaleDateString()}</td>
+                  </tr>
                 ))}</tbody>
               </table>
-              <div style={styles.pagination}>
-                <button style={styles.pageBtn} disabled={ticketPage <= 1} onClick={() => setTicketPage(ticketPage - 1)}>Prev</button>
-                <span style={{ color: '#AAA', fontSize: 13 }}>Page {ticketPage} of {Math.ceil(ticketTotal / 50) || 1}</span>
-                <button style={styles.pageBtn} disabled={ticketPage >= Math.ceil(ticketTotal / 50)} onClick={() => setTicketPage(ticketPage + 1)}>Next</button>
-              </div>
+              {entries.length === 0 && <Text style={styles.empty}>No entries yet.</Text>}
             </div>
           )}
         </div>
@@ -228,60 +186,20 @@ export default function LotteryPage() {
 
       {activeTab === 'Winners' && (
         <div style={styles.panel}>
-          {loading ? <p style={{ color: '#AAA' }}>Loading...</p> : winners.length === 0 ? (
-            <div style={styles.empty}>No winners yet.</div>
-          ) : (
+          {loading ? <p style={{ color: '#AAA' }}>Loading...</p> : (
             <div style={styles.tableWrap}>
               <table style={styles.table}>
-                <thead><tr><th style={styles.th}>Ticket</th><th style={styles.th}>User</th><th style={styles.th}>Prize</th><th style={styles.th}>Claimed</th><th style={styles.th}>Date</th></tr></thead>
+                <thead><tr><th style={styles.th}>Driver</th><th style={styles.th}>Giveaway</th><th style={styles.th}>Prize</th><th style={styles.th}>Date</th></tr></thead>
                 <tbody>{winners.map((w) => (
                   <tr key={w.id}>
-                    <td style={styles.td}>{w.ticket?.ticketNumber}</td>
-                    <td style={styles.td}>{w.ticket?.user?.firstName} {w.ticket?.user?.lastName} ({w.ticket?.user?.phone})</td>
-                    <td style={styles.td}>${w.prize?.toFixed(2)}</td>
-                    <td style={styles.td}>{w.claimed ? 'Yes' : 'No'}</td>
+                    <td style={styles.td}>{w.user?.firstName} {w.user?.lastName} ({w.user?.phone})</td>
+                    <td style={styles.td}>{w.lottery?.title || 'N/A'}</td>
+                    <td style={styles.td}>${w.lottery?.prizePool?.toFixed(2) || '0.00'}</td>
                     <td style={styles.td}>{new Date(w.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}</tbody>
               </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'Promos' && (
-        <div style={styles.panel}>
-          <h3 style={styles.subtitle}>Create Promo Code</h3>
-          <div style={styles.row}>
-            <input style={styles.input} placeholder="CODE" value={promoForm.code} onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase() })} />
-            <input style={styles.input} type="number" placeholder="Discount" value={promoForm.discount} onChange={(e) => setPromoForm({ ...promoForm, discount: e.target.value })} />
-            <select style={styles.input} value={promoForm.discountType} onChange={(e) => setPromoForm({ ...promoForm, discountType: e.target.value })}>
-              <option value="PERCENTAGE">%</option>
-              <option value="FIXED">$</option>
-            </select>
-            <input style={styles.input} type="number" placeholder="Max Uses" value={promoForm.maxUses} onChange={(e) => setPromoForm({ ...promoForm, maxUses: e.target.value })} />
-            <input style={styles.input} type="date" value={promoForm.expiresAt} onChange={(e) => setPromoForm({ ...promoForm, expiresAt: e.target.value })} />
-            <button style={styles.saveBtn} onClick={createPromo}>Create</button>
-          </div>
-          {loading ? <p style={{ color: '#AAA' }}>Loading...</p> : (
-            <div style={styles.tableWrap}>
-              <table style={styles.table}>
-                <thead><tr><th style={styles.th}>Code</th><th style={styles.th}>Discount</th><th style={styles.th}>Used</th><th style={styles.th}>Max</th><th style={styles.th}>Active</th><th style={styles.th}>Expires</th><th style={styles.th}>Action</th></tr></thead>
-                <tbody>{promos.map((p) => (
-                  <tr key={p.id}>
-                    <td style={styles.td}>{p.code}</td>
-                    <td style={styles.td}>{p.discountType === 'PERCENTAGE' ? `${p.discount}%` : `$${p.discount}`}</td>
-                    <td style={styles.td}>{p.usedCount}</td>
-                    <td style={styles.td}>{p.maxUses}</td>
-                    <td style={styles.td}><span style={{ color: p.isActive ? '#34C759' : '#FF3B30' }}>{p.isActive ? 'Yes' : 'No'}</span></td>
-                    <td style={styles.td}>{p.expiresAt ? new Date(p.expiresAt).toLocaleDateString() : 'Never'}</td>
-                    <td style={styles.td}>
-                      <button style={styles.toggleBtn} onClick={() => togglePromo(p.id, p.isActive)}>{p.isActive ? 'Disable' : 'Enable'}</button>
-                      <button style={styles.deleteBtn} onClick={() => deletePromo(p.id)}>Delete</button>
-                    </td>
-                  </tr>
-                ))}</tbody>
-              </table>
+              {winners.length === 0 && <Text style={styles.empty}>No winners yet.</Text>}
             </div>
           )}
         </div>
@@ -295,23 +213,18 @@ const styles = {
   tabs: { display: 'flex', gap: 8, marginBottom: 20 },
   tab: { background: '#1A1A1A', color: '#AAA', border: '1px solid #2A2A2A', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 14 },
   tabActive: { background: '#FFD700', color: '#FFF', borderColor: '#FFD700' },
-  panel: { background: '#1A1A1A', borderRadius: 14, padding: 24, border: '1px solid #2A2A2A' },
-  row: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' },
-  label: { color: '#AAA', fontSize: 14, minWidth: 140, fontWeight: 600 },
-  input: { background: '#0F0F0F', border: '1px solid #2A2A2A', borderRadius: 8, padding: '8px 12px', color: '#FFF', fontSize: 14, outline: 'none', minWidth: 120 },
-  statValue: { color: '#FFF', fontSize: 16, fontWeight: 700 },
-  actions: { display: 'flex', gap: 12, marginTop: 20 },
-  saveBtn: { background: '#FFD700', color: '#FFF', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13 },
-  drawBtn: { background: '#FF6B35', color: '#FFF', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13 },
+  panel: { background: '#1A1A1A', borderRadius: 14, padding: 24, border: '1px solid #2A2A2A', marginBottom: 16 },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 },
+  input: { background: '#0F0F0F', border: '1px solid #2A2A2A', borderRadius: 8, padding: '8px 12px', color: '#FFF', fontSize: 14, outline: 'none', width: '100%' },
+  saveBtn: { background: '#FFD700', color: '#FFF', border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 700, fontSize: 14 },
+  drawBtn: { background: '#FF6B35', color: '#FFF', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 13 },
+  deleteBtn: { background: '#FF3B30', color: '#FFF', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 13 },
+  giveawayCard: { background: '#0F0F0F', borderRadius: 12, padding: 16, border: '1px solid #2A2A2A' },
   msgBox: { background: '#2A1A00', border: '1px solid #FF9500', color: '#FF9500', padding: '10px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13, cursor: 'pointer' },
   subtitle: { color: '#FFF', fontSize: 16, fontWeight: 700, marginBottom: 12 },
   tableWrap: { overflowX: 'auto' },
   table: { width: '100%', borderCollapse: 'collapse', background: '#0F0F0F', borderRadius: 10, overflow: 'hidden' },
   th: { textAlign: 'left', padding: '10px 12px', color: '#AAA', fontSize: 11, textTransform: 'uppercase', borderBottom: '1px solid #2A2A2A' },
   td: { padding: '10px 12px', borderBottom: '1px solid #2A2A2A', fontSize: 13, color: '#FFF' },
-  pagination: { display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 },
-  pageBtn: { background: '#1A1A1A', color: '#FFF', border: '1px solid #2A2A2A', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 },
-  toggleBtn: { background: '#007AFF', color: '#FFF', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, marginRight: 4 },
-  deleteBtn: { background: '#FF3B30', color: '#FFF', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 },
   empty: { color: '#AAA', textAlign: 'center', padding: 40 },
 };
