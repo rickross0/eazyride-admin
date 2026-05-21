@@ -15,7 +15,7 @@ export default function ProvidersPage() {
     (async () => {
       try {
         const { data } = await client.get('/admin/providers');
-        setProviders(data.providers || []);
+        setProviders(data.data || data.providers || []);
       } catch (e) {
         console.error('Fetch providers error:', e);
       } finally {

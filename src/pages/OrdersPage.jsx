@@ -26,7 +26,7 @@ export default function OrdersPage() {
           ? `/admin/rides?limit=50${statusFilter ? '&status=' + statusFilter : ''}`
           : `/admin/orders?limit=50${statusFilter ? '&status=' + statusFilter : ''}`;
         const { data: res } = await client.get(endpoint);
-        setData(tab === 'rides' ? res.rides || [] : res.orders || []);
+        setData(tab === 'rides' ? (res.data || res.rides || []) : (res.data || res.orders || []));
       } catch (e) {
         console.error('Fetch error:', e);
       } finally {

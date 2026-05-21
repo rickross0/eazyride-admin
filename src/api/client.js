@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const client = axios.create({
-  baseURL: 'https://eazyride-haye-backend.onrender.com/api',
+  baseURL: 'https://eazyride-api.onrender.com/api',
   timeout: 15000,
 });
 

@@ -22,7 +22,7 @@ export default function PayoutsPage() {
     (async () => {
       try {
         const { data } = await client.get('/admin/payouts');
-        setPayouts(data.payouts || []);
+        setPayouts(data.data || data.payouts || []);
       } catch (e) {
         console.error('Fetch payouts error:', e);
       } finally {
@@ -34,7 +34,7 @@ export default function PayoutsPage() {
   const refresh = async () => {
     try {
       const { data } = await client.get('/admin/payouts');
-      setPayouts(data.payouts || []);
+      setPayouts(data.data || data.payouts || []);
     } catch (e) { console.error('Refresh error:', e); }
   };
 

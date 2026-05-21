@@ -32,7 +32,7 @@ export default function UsersPage() {
     try {
       const res = await client.get(`/admin/users?limit=50&page=${p}`);
       const rd = res.data?.data || res.data || {};
-      setUsers(rd.users || []);
+      setUsers(rd.data || rd.users || []);
       setTotal(rd.total || 0);
       setPage(p);
     } catch (e) { console.error('Fetch users error:', e); }
@@ -42,7 +42,7 @@ export default function UsersPage() {
     try {
       const res = await client.get('/admin/drivers?limit=50');
       const rd = res.data?.data || res.data || {};
-      setDrivers(rd.drivers || []);
+      setDrivers(rd.data || rd.drivers || []);
     } catch (e) { console.error('Fetch drivers error:', e); }
   };
 

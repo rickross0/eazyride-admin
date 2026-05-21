@@ -25,14 +25,14 @@ export default function DashboardPage() {
         const pd = providersRes.data?.data || providersRes.data || {};
         const nd = onlineRes.data?.data || onlineRes.data || {};
         setStats({
-          users: ud.total || 0,
-          drivers: dd.total || 0,
-          rides: rd.total || 0,
-          orders: od.total || 0,
-          providers: (pd.providers || []).length,
-          activeDrivers: (nd.drivers || []).length,
+          users: ud.pagination?.total || ud.total || 0,
+          drivers: dd.pagination?.total || dd.total || 0,
+          rides: rd.pagination?.total || rd.total || 0,
+          orders: od.pagination?.total || od.total || 0,
+          providers: (pd.data || pd.providers || []).length,
+          activeDrivers: (nd.data || nd.drivers || []).length,
         });
-        setOnlineDrivers(nd.drivers || []);
+        setOnlineDrivers(nd.data || nd.drivers || []);
       } catch (e) {
         console.error('Dashboard stats error:', e);
       } finally {

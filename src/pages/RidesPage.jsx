@@ -16,7 +16,7 @@ export default function RidesPage() {
     (async () => {
       try {
         const { data } = await client.get(`/admin/rides?limit=50${statusFilter ? '&status=' + statusFilter : ''}`);
-        setRides(data.rides || []);
+        setRides((data.data || data.rides || []));
       } catch (e) {
         console.error('Fetch rides error:', e);
       } finally {
