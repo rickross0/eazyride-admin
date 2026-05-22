@@ -11,22 +11,31 @@ export default function SosPage() {
   const fetchAlerts = async () => {
     setLoading(true);
     try {
-      const status = filter === 'ALL' ? '' : `?status=${filter}`;
-      const { data } = await client.get(`/admin/sos${status}`);
-      setAlerts(data.alerts || []);
+      const endpoint = filter === 'ACTIVE' ? '/admin/sos/active' : '/admin/sos';
+      const { data } = await client.get(endpoint);
+      setAlerts(data?.data || []);
     } catch (e) { console.error('SOS fetch error:', e); }
     setLoading(false);
   };
 
   const resolve = async (id) => {
     try {
-      await client.put(`/admin/sos/${id}/resolve`);
+      await client.patch(`/admin/sos/${id}/resolve`);
       fetchAlerts();
     } catch (e) { alert('Failed to resolve'); }
   };
 
   const formatTime = (iso) => {
     try { return new Date(iso).toLocaleString(); } catch { return iso; }
+  };
+
+  const getLocation = (a) => {
+    if (!a.location) return null;
+    if (typeof a.location === 'object') return { lat: a.location.lat, lng: a.location.lng };
+    try {
+      const parsed = JSON.parse(a.location);
+      return { lat: parsed.lat, lng: parsed.lng };
+    } catch { return null; }
   };
 
   return (
@@ -47,66 +56,62 @@ export default function SosPage() {
         </div>
       ) : (
         <div style={styles.alertList}>
-          {alerts.map((a) => (
-            <div key={a.id} style={{ ...styles.alertCard, borderLeftColor: a.status === 'ACTIVE' ? '#FF3B30' : '#34C759' }}>
-              <div style={styles.alertHeader}>
-                <div>
-                  <span style={styles.alertName}>{a.user?.firstName} {a.user?.lastName}</span>
-                  <span style={styles.alertPhone}>📞 {a.user?.phone}</span>
+          {alerts.map((a) => {
+            const loc = getLocation(a);
+            return (
+              <div key={a.id} style={{ ...styles.alertCard, borderLeftColor: a.status === 'ACTIVE' ? '#FF3B30' : '#34C759' }}>
+                <div style={styles.alertHeader}>
+                  <div>
+                    <span style={styles.alertName}>{a.user?.firstName} {a.user?.lastName}</span>
+                    <span style={styles.alertPhone}>📞 {a.user?.phone}</span>
+                  </div>
+                  <div style={styles.alertMeta}>
+                    <span style={{ ...styles.statusBadge, backgroundColor: a.status === 'ACTIVE' ? '#FF3B30' : '#34C759' }}>{a.status}</span>
+                    <span style={styles.alertTime}>{formatTime(a.createdAt)}</span>
+                  </div>
                 </div>
-                <div style={styles.alertMeta}>
-                  <span style={{ ...styles.statusBadge, backgroundColor: a.status === 'ACTIVE' ? '#FF3B30' : '#34C759' }}>{a.status}</span>
-                  <span style={styles.alertTime}>{formatTime(a.createdAt)}</span>
-                </div>
-              </div>
 
-              <div style={styles.alertBody}>
-                <div style={styles.alertRow}>
-                  <span style={styles.alertLabel}>📍 Location</span>
-                  <span style={styles.alertValue}>
-                    {a.address || 'Unknown'}
-                    {a.latitude && a.longitude && (
-                      <a href={`https://maps.google.com/?q=${a.latitude},${a.longitude}`} target="_blank" style={{ color: '#FFD700', marginLeft: 8, fontSize: 12 }}>
-                        Open Map ↗
-                      </a>
-                    )}
-                  </span>
+                <div style={styles.alertBody}>
+                  <div style={styles.alertRow}>
+                    <span style={styles.alertLabel}>📍 Location</span>
+                    <span style={styles.alertValue}>
+                      {a.address || 'Unknown'}
+                      {loc && (
+                        <a href={`https://maps.google.com/?q=${loc.lat},${loc.lng}`} target="_blank" rel="noreferrer" style={{ color: '#FFD700', marginLeft: 8, fontSize: 12 }}>
+                          Open Map ↗
+                        </a>
+                      )}
+                    </span>
+                  </div>
+                  {a.rideId && (
+                    <div style={styles.alertRow}>
+                      <span style={styles.alertLabel}>🛺 Ride ID</span>
+                      <span style={styles.alertValue}>{a.rideId.slice(0, 8)}...</span>
+                    </div>
+                  )}
+                  {a.message && (
+                    <div style={styles.alertRow}>
+                      <span style={styles.alertLabel}>💬 Message</span>
+                      <span style={styles.alertValue}>{a.message}</span>
+                    </div>
+                  )}
+                  {a.resolvedAt && (
+                    <div style={styles.alertRow}>
+                      <span style={styles.alertLabel}>✅ Resolved</span>
+                      <span style={styles.alertValue}>{formatTime(a.resolvedAt)}</span>
+                    </div>
+                  )}
                 </div>
-                {a.rideId && (
-                  <div style={styles.alertRow}>
-                    <span style={styles.alertLabel}>🛺 Ride ID</span>
-                    <span style={styles.alertValue}>{a.rideId.slice(0, 8)}...</span>
-                  </div>
-                )}
-                {a.driverInfo && (
-                  <div style={styles.alertRow}>
-                    <span style={styles.alertLabel}>🚗 Driver</span>
-                    <span style={styles.alertValue}>{a.driverInfo.name} • 📞 {a.driverInfo.phone} • {a.driverInfo.plate} ({a.driverInfo.vehicle})</span>
-                  </div>
-                )}
-                {a.message && (
-                  <div style={styles.alertRow}>
-                    <span style={styles.alertLabel}>💬 Message</span>
-                    <span style={styles.alertValue}>{a.message}</span>
-                  </div>
-                )}
-                {a.resolvedAt && (
-                  <div style={styles.alertRow}>
-                    <span style={styles.alertLabel}>✅ Resolved</span>
-                    <span style={styles.alertValue}>{formatTime(a.resolvedAt)}</span>
+
+                {a.status === 'ACTIVE' && (
+                  <div style={styles.alertActions}>
+                    <button style={styles.resolveBtn} onClick={() => resolve(a.id)}>✓ Mark Resolved</button>
+                    <a href={`tel:${a.user?.phone}`} style={styles.callBtn}>📞 Call Rider</a>
                   </div>
                 )}
               </div>
-
-              {a.status === 'ACTIVE' && (
-                <div style={styles.alertActions}>
-                  <button style={styles.resolveBtn} onClick={() => resolve(a.id)}>✓ Mark Resolved</button>
-                  <a href={`tel:${a.user?.phone}`} style={styles.callBtn}>📞 Call Rider</a>
-                  {a.driverInfo?.phone && <a href={`tel:${a.driverInfo.phone}`} style={styles.callBtn}>📞 Call Driver</a>}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
