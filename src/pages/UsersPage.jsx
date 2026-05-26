@@ -86,8 +86,13 @@ export default function UsersPage() {
   const handleRoleChange = async () => {
     setRoleLoading(true);
     try {
-      const { data } = await client.put(`/admin/users/${roleUserId}/role`, { role: selectedRole });
-      setUsers(prev => prev.map(u => u.id === roleUserId ? { ...u, role: selectedRole } : u));
+      const res = await client.put(`/admin/users/${roleUserId}/role`, { role: selectedRole });
+      const responseData = res.data?.data;
+      if (responseData || res.data?.success) {
+        setUsers(prev => prev.map(u => u.id === roleUserId ? { ...u, role: selectedRole } : u));
+      } else {
+        throw new Error("Failed to update role");
+      }
       alert(`Role changed to ${selectedRole}`);
       setRoleUserId(null);
     } catch (e) { alert('Failed: ' + (e.response?.data?.error || e.message)); }
