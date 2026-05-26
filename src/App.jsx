@@ -41,9 +41,8 @@ const leftNavItems = [
   { to: '/sos', label: 'SOS Alerts', icon: '🆘', minLevel: 'CARE' },
   { to: '/heatmap', label: 'Heatmap', icon: '🔥', minLevel: 'MANAGER' },
   { to: '/settings', label: 'Settings', icon: '\u2699\uFE0F', minLevel: 'SUPER' },
-];
   { to: '/payment-settings', label: 'Payment', icon: 'card', minLevel: 'SUPER' },
-
+];
 const rightNavItems = [
   { to: '/providers', label: 'Providers', icon: '\uD83D\uDE97', minLevel: 'MANAGER' },
   { to: '/restaurants', label: 'Restaurants', icon: '\uD83C\uDF54', minLevel: 'MANAGER' },
@@ -149,7 +148,7 @@ function AppRoutes() {
       <Route path="/heatmap" element={<PrivateRoute><Layout><DemandHeatmapPage /></Layout></PrivateRoute>} />
       <Route path="/sos" element={<PrivateRoute><Layout><SosPage /></Layout></PrivateRoute>} />
       <Route path="/settings" element={<PrivateRoute><Layout><SettingsPage /></Layout></PrivateRoute>} />
-      <Route path="/payment-settings" element={<PrivateRoute><Layout><PaymentSettingsPage /></Layout></PrivateRoute>}
+      <Route path="/payment-settings" element={<PrivateRoute><Layout><PaymentSettingsPage /></Layout></PrivateRoute>} />
       <Route path="/lottery" element={<PrivateRoute><Layout><LotteryPage /></Layout></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
