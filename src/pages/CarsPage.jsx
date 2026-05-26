@@ -10,7 +10,7 @@ export default function CarsPage() {
     (async () => {
       try {
         const { data } = await client.get('/admin/cars?limit=50');
-        setCars(data.cars || []);
+        setCars(data.data || data.cars || []);
       } catch (e) {
         console.error('Fetch cars error:', e);
       } finally {

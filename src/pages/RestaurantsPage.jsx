@@ -27,8 +27,8 @@ export default function RestaurantsPage() {
         client.get('/admin/restaurants?limit=100'),
         client.get('/admin/restaurants?limit=200'),
       ]);
-      setRestaurants((rRes.data?.data || rRes.data).stores || (rRes.data?.data || rRes.data).restaurants || []);
-      setMenuItems((mRes.data?.data || mRes.data).menuItems || (mRes.data?.data || mRes.data).items || []);
+      setRestaurants(rRes.data?.data || rRes.data?.stores || rRes.data || []);
+      setMenuItems(mRes.data?.data || mRes.data?.menuItems || mRes.data || []);
     } catch (e) {
       console.error('Fetch error:', e);
     } finally {
