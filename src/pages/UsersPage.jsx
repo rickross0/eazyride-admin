@@ -31,9 +31,9 @@ export default function UsersPage() {
   const fetchUsers = async (p = 1) => {
     try {
       const res = await client.get(`/admin/users?limit=50&page=${p}`);
-      const rd = res.data?.data || res.data || {};
-      setUsers(rd.data || rd.users || []);
-      setTotal(rd.total || 0);
+      const data = res.data?.data;
+      setUsers(Array.isArray(data) ? data : data?.data || data?.users || []);
+      setTotal(data?.pagination?.total || res.data?.pagination?.total || 0);
       setPage(p);
     } catch (e) { console.error('Fetch users error:', e); }
   };
