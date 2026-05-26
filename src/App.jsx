@@ -42,7 +42,7 @@ const leftNavItems = [
   { to: '/heatmap', label: 'Heatmap', icon: '🔥', minLevel: 'MANAGER' },
   { to: '/settings', label: 'Settings', icon: '\u2699\uFE0F', minLevel: 'SUPER' },
 ];
-  { to: '/payment-settings', label: 'Payment', icon: '💳', minLevel: 'SUPER' },
+  { to: '/payment-settings', label: 'Payment', icon: '\uD83D\uDCB3', minLevel: 'SUPER' },
 
 const rightNavItems = [
   { to: '/providers', label: 'Providers', icon: '\uD83D\uDE97', minLevel: 'MANAGER' },
