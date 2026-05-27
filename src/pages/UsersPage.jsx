@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import client from '../api/client';
 
-const ROLES = ['RIDER', 'DRIVER', 'STORE_OWNER', 'RENTAL_COMPANY', 'ADMIN', 'SUPER_ADMIN'];
+const ROLES = ['RIDER', 'DRIVER', 'STORE_OWNER', 'SERVICE_PROVIDER', 'RENTAL_COMPANY', 'ADMIN', 'SUPER_ADMIN'];
+const ROLE_HIERARCHY = { RENTAL_COMPANY: 'SERVICE_PROVIDER' };
 const ROLE_COLORS = {
-  RIDER: '#007AFF', DRIVER: '#FF9500', STORE_OWNER: '#FFD700', RENTAL_COMPANY: '#5AC8FA',
+  RIDER: '#007AFF', DRIVER: '#FF9500', STORE_OWNER: '#FFD700', RENTAL_COMPANY: '#5AC8FA', SERVICE_PROVIDER: '#34C759',
   ADMIN: '#AF52DE', SUPER_ADMIN: '#FF3B30',
 };
 
@@ -238,6 +239,7 @@ export default function UsersPage() {
               {ROLES.map(r => (
                 <button key={r} style={{ ...styles.roleOption, ...(selectedRole === r ? styles.roleOptionActive : {}) }} onClick={() => setSelectedRole(r)}>
                   <span style={{ color: ROLE_COLORS[r], fontWeight: 800 }}>{r}</span>
+                  {ROLE_HIERARCHY[r] && <span style={{ fontSize: 9, color: '#888', display: 'block', marginTop: 2 }}>↳ sub-role</span>}
                 </button>
               ))}
             </div>
